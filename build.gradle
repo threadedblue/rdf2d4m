@@ -1,0 +1,110 @@
+apply plugin: 'application'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+apply plugin: 'java-library'
+
+applicationName = 'rdf2d4m'
+sourceCompatibility = 1.8
+mainClassName = 'iox.rdf2d4m.RDF2D4MDriver'
+group = 'iox.d4m'
+version = '0.0.1'
+
+
+def jarFile = buildDir.name + "/libs/" + applicationName + "-" + version + ".jar"
+configure(install.repositories.mavenInstaller) {
+    pom.project {
+        groupId group
+        artifactId applicationName
+        inceptionYear '2018'
+        packaging 'jar'
+    }
+}
+
+clean {
+    delete "${buildDir}" 
+    delete "${applicationName}" 
+}
+
+repositories {
+    jcenter()
+    maven {url 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath;}
+}
+        
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/main/java'
+            srcDirs 'gen/main/java'
+         }
+    }
+    test {
+        java {
+            srcDirs 'src/test/java'
+         }
+    }
+}
+
+dependencies {
+ //   compile project (':accumulo.d4m')
+//    compile project (':accumulo.access')
+    compile "iox.d4m:accumulo.d4m:0.0.1"
+    compile "iox.accumulo:accumulo.access:0.0.1"
+    compile "args4j:args4j:2.33"
+         
+    // RDF4J
+    compile "org.openrdf.sesame:sesame-queryresultio-text:${rdfver}"
+
+    // Logging
+    compile "org.apache.logging.log4j:log4j-slf4j-impl:${logver}" 
+    
+    compile "org.apache.accumulo:accumulo-core:${accver}"
+    compile "org.apache.accumulo:accumulo-fate:${accver}"
+    compile "org.apache.accumulo:accumulo-start:${accver}"
+    compile "org.apache.accumulo:accumulo-trace:${accver}"
+    compile "org.apache.hadoop:hadoop-client:${hadver}"
+    compile "org.apache.zookeeper:zookeeper:${zoover}"
+
+   api 'org.apache.commons:commons-math3:3.6.1'
+    implementation 'com.google.guava:guava:23.0'
+    testImplementation 'junit:junit:4.12'
+}
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
+
+task assemblex {
+    dependsOn jar
+    inputs.file jarFile
+    outputs.dir applicationName
+   doLast{ 
+      copy {
+            from "${buildDir}/libs"
+            into "${applicationName}"
+            fileMode = 0777
+        }
+       copy {
+            from "conf/"
+            into "${applicationName}/conf"
+        }
+       copy {
+            from configurations.runtime
+            into "$applicationName/lib"
+        }
+   }
+}
+
+jar {
+    // Keep jar clean:
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
+    manifest {
+        attributes ('Implementation-Title' : 'SCAP 2 RDF',
+                   'Implementation-Version': version,
+                   'Main-Class': mainClassName,
+                   'Class-Path': ' lib/' + configurations.runtime.collect { it.getName() }.join(' lib/'))
+        }
+}

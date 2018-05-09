@@ -1,0 +1,62 @@
+package iox.rdf2d4m;
+
+import java.io.IOException;
+
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.openrdf.rio.RDFFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import iox.accumulo.d4m.AccumuloInsert;
+
+public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
+
+	private static final Logger log = LoggerFactory.getLogger(RDF2D4MMapper.class);
+
+	private static RDFFormat rdfFormat = RDFFormat.NTRIPLES;
+
+	AccumuloInsert accIns;
+	enum RDF {SUBJECT, PREDICATE, OBJECT};
+
+	@Override
+	protected void setup(Mapper<LongWritable, Text, NullWritable, Text>.Context ctx)
+			throws IOException, InterruptedException {
+		log.trace("setup==>0");
+		super.setup(ctx);
+		log.trace("setup==>1");
+
+		log.trace("setup==>3");
+		String configFile = ctx.getConfiguration().get(RDF2D4MDriver.CONFIG_FILE);
+		accIns = new AccumuloInsert(configFile);
+		log.debug("AccumuloInsert=" + accIns);
+		log.trace("<==setup");
+	}
+
+	@Override
+	protected void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
+		// receives a RyaStatementWritable; convert to a Statement
+		log.trace("map==>0");
+		String s = value.toString().replaceAll("[<>]", "");
+		log.trace("map==>1");
+		
+		String[] spo = s.split(" ");
+		try {
+			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", "", "PUBLIC");
+		} catch (Exception e) {
+			log.error("" , e);
+		}
+		log.trace("inserted=" + spo);
+		log.trace("<==map");
+	}
+
+	@Override
+	protected void cleanup(Mapper<LongWritable, Text, NullWritable, Text>.Context context)
+			throws IOException, InterruptedException {
+		super.cleanup(context);
+	}
+	
+	
+}
