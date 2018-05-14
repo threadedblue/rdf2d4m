@@ -45,8 +45,6 @@ sourceSets {
 }
 
 dependencies {
- //   compile project (':accumulo.d4m')
-//    compile project (':accumulo.access')
     compile "iox.d4m:accumulo.d4m:0.0.1"
     compile "iox.accumulo:accumulo.access:0.0.1"
     compile "args4j:args4j:2.33"
@@ -63,9 +61,11 @@ dependencies {
     compile "org.apache.accumulo:accumulo-trace:${accver}"
     compile "org.apache.hadoop:hadoop-client:${hadver}"
     compile "org.apache.zookeeper:zookeeper:${zoover}"
-
-   api 'org.apache.commons:commons-math3:3.6.1'
-    implementation 'com.google.guava:guava:23.0'
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.5"
+    compile "com.fasterxml.jackson.core:jackson-databind:2.9.4"
+    compile "org.apache.commons:commons-lang3:3.4"
+    api 'org.apache.commons:commons-math3:3.6.1'
+    compile 'com.google.guava:guava:14.0.1'
     testImplementation 'junit:junit:4.12'
 }
 

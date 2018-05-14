@@ -11,10 +11,13 @@
 		</File>
 	</Appenders>
 	<Loggers>
-        <Logger name="edu.mit.ll.d4m.db.cloud.accumulo" level="TRACE">
+        <Logger name="edu.mit.ll.d4m.db.cloud.accumulo" level="OFF">
             <AppenderRef ref="Console" />
         </Logger>
         <Logger name="iox.rdf2d4m" level="DEBUG">
+            <AppenderRef ref="Console" />
+        </Logger>
+        <Logger name="iox.accumulo" level="DEBUG">
             <AppenderRef ref="Console" />
         </Logger>
 		<Root level="INFO">

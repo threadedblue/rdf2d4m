@@ -1,9 +1,11 @@
--c:/usr/local/hadoop/etc/hadoop
--fL:hdfs://haz00.:9000
--i:/scap/scap2rdf/arf.rdf
--o:ec2
--ow:true
-accumulo.instance:accumulo
-zookeeper.uri:haz00:2181
-user:haz
-password:haz
+# RDF2D4M configuration file
+---
+args:
+  i: "/scap2rdf/arf.rdf"
+  o: ec2
+  l: "accumulo"
+  zk: "haz00:2181"
+  fs: "hdfs://haz00:9000"
+  t: "scap"
+  ow: "true"
+accumuloCreds: "file:///home/haz/accumulo-creds.yml"
