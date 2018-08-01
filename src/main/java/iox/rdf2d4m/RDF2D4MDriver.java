@@ -18,6 +18,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -50,19 +51,16 @@ public class RDF2D4MDriver implements Runnable {
 	@Option(name = "-i", aliases = "--input", required = true, usage = "")
 	private String input;
 
-	@Option(name = "-o", aliases = "--output", required = false, usage = "hdfs Path to output. dir only")
-	private String output;
-
 	@Option(name = "-ow", aliases = "--overwrite", required = false, usage = "Overwrite output")
 	private boolean overwrite;
 
 	@Option(name = "-c", aliases = "--config", required = false, usage = "Path to hadoop config directory.")
 	private String configFilePath = "/usr/local/hadoop/etc/hadoop";
 
-	@Option(name = "-fs", aliases = "--filesystem", required = true, usage = "URL to the hadoop file system as a string..")
+	@Option(name = "-fs", aliases = "--filesystem", required = true, usage = "URL to the hadoop file system as a string.")
 	private String fileSystem;
 
-	@Option(name = "-l", aliases = "--instance", required = true, usage = "Name of Accumulo instance.")
+	@Option(name = "-l", aliases = "--instance", required = false, usage = "Name of Accumulo instance.")
 	private String accumuloInstance;
 
 	@Option(name = "-zk", aliases = "--zookeeper", required = true, usage = "URL to zookeeper instance as a string.")
@@ -81,9 +79,9 @@ public class RDF2D4MDriver implements Runnable {
 			log.debug("RDF2D4MDriver=0");
 			String[] argArray = getConfig().getArgsAsArray();
 			log.debug("RDF2D4MDriver=1");
-			log.debug("RDF2D4MDriver=2" + Arrays.toString(args));
-			CLI.parseArgument(args);
-			log.debug("RDF2D4MDriver=3");
+			log.debug("RDF2D4MDriver=2" + Arrays.toString(argArray));
+			CLI.parseArgument(argArray);
+			log.debug("RDF2D4MDriver=3" + ReflectionToStringBuilder.toString(this, ToStringStyle.MULTI_LINE_STYLE));
 		} catch (CmdLineException | IllegalArgumentException e) {
 			CLI.printUsage(System.out);
 		}
@@ -101,10 +99,11 @@ public class RDF2D4MDriver implements Runnable {
 				"org.apache.hadoop.io.serializer.JavaSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
 
 		try {
+			log.debug("accumuloInstance=" + accumuloInstance);
 			conf.set(ACCUMULO_INSTANCE, accumuloInstance);
 			conf.set(ACCUMULO_CREDS_FILE, getConfig().getAccumuloCreds());
 			conf.set(TABLE_NAME, tableName);
-			conf.set(OVERWRITE, Boolean.toString(overwrite));
+			conf.setBoolean(OVERWRITE, overwrite);
 			conf.set(ZOOKEEPER_URI, zookeeperURI);
 			Job job = Job.getInstance(conf);
 			job.setJarByClass(RDF2D4MDriver.class);
@@ -117,19 +116,18 @@ public class RDF2D4MDriver implements Runnable {
 
 			Path pathInput = new Path(pathRoot, input);
 			log.info("pathInput=" + pathInput.toString());
-			Path pathOutput = new Path(pathInput, "/" + output);
+			
+			Path pathOutput = new Path(pathRoot, "/null");
 			log.info("pathOutput=" + pathOutput.toString());
-
-			if (fs.exists(pathOutput)) {
-				fs.delete(pathOutput, overwrite);
-			}
 
 			job.setMapperClass(RDF2D4MMapper.class);
 			job.setNumReduceTasks(0);
 
 			FileInputFormat.setInputPaths(job, pathInput);
-			FileOutputFormat.setOutputPath(job, pathOutput);
 			job.setInputFormatClass(TextInputFormat.class);
+
+			FileOutputFormat.setOutputPath(job, pathOutput);
+			job.setOutputFormatClass(NullOutputFormat.class);
 
 			job.getConfiguration().set("mapred.child.java.opts", "-Xmx2048m");
 			log.debug("waitForCompletion==>");
@@ -163,7 +161,7 @@ public class RDF2D4MDriver implements Runnable {
 				} else {
 					String eol = System.getProperty("line.separator");
 					StringReader reader = new StringReader(
-							"args:" + eol + "accumulo-creds: file:///~/.ssh/accumulo-creds");
+							"args:" + eol + "accumulo-creds: file:///~/accumulo-creds");
 					config = mapper.readValue(reader, RDF2D4MConfig.class);
 					log.debug(ReflectionToStringBuilder.toString(config, ToStringStyle.MULTI_LINE_STYLE));
 				}

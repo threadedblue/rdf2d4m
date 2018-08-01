@@ -35,9 +35,9 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		String zookeeperURI  = cfg.get(RDF2D4MDriver.ZOOKEEPER_URI);
 		String accumuloInstance = cfg.get(RDF2D4MDriver.ACCUMULO_INSTANCE);
 		String tableName = cfg.get(RDF2D4MDriver.TABLE_NAME);
-		Boolean overwrite = new Boolean(cfg.get(RDF2D4MDriver.OVERWRITE));
+		Boolean overwrite = cfg.getBoolean(RDF2D4MDriver.OVERWRITE, false);
 		URL credsFile = new URL(cfg.get(RDF2D4MDriver.ACCUMULO_CREDS_FILE));
-		accIns = new AccumuloInsert(zookeeperURI, accumuloInstance, tableName, credsFile);
+		accIns = new AccumuloInsert(zookeeperURI, accumuloInstance, tableName, overwrite, credsFile);
 		log.debug("AccumuloInsert=" + accIns);
 		log.trace("<==setup");
 	}
@@ -50,12 +50,11 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 			return;
 		}
 		String s = value.toString().replaceAll("[<>]", "");
-//		String s1 = value.toString().replaceAll("$ \\.", "");
 		log.trace("map==>1");
 		
 		String[] spo = s.split(" ");
 		try {
-			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", "", "PUBLIC");
+			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", "", "");
 		} catch (Exception e) {
 			log.error("s=" + s);
 			log.error("spo=" + spo);
