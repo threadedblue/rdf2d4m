@@ -3,6 +3,8 @@ package iox.rdf2d4m;
 import java.io.IOException;
 import java.net.URL;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -12,7 +14,9 @@ import org.openrdf.rio.RDFFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import iox.accumulo.d4m.AccumuloInsert;
+import edu.mit.ll.graphulo.util.D4MTableWriter;
+import edu.mit.ll.graphulo.util.D4MTableWriter.D4MTableConfig;
+import iox.accumulo.AccumuloAccess;
 
 public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
 
@@ -20,8 +24,9 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 
 	private static RDFFormat rdfFormat = RDFFormat.NTRIPLES;
 
-	AccumuloInsert accIns;
+	D4MTableWriter d4mTW;
 	enum RDF {SUBJECT, PREDICATE, OBJECT};
+	int count;
 
 	@Override
 	protected void setup(Mapper<LongWritable, Text, NullWritable, Text>.Context ctx)
@@ -37,9 +42,18 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		String tableName = cfg.get(RDF2D4MDriver.TABLE_NAME);
 		Boolean overwrite = cfg.getBoolean(RDF2D4MDriver.OVERWRITE, false);
 		URL credsFile = new URL("file:///home/haz/accumulo-creds.yml");
-		accIns = new AccumuloInsert("haz00:2181", "accumulo", "ccdSOP", overwrite, credsFile);
-		log.debug("AccumuloInsert=" + accIns);
-		log.trace("<==setup");
+		AccumuloAccess db = new AccumuloAccess("haz00:2181", "accumulo", credsFile);
+		D4MTableConfig tconf = new D4MTableConfig();
+		tconf.baseName = "ccdSOP";
+		tconf.connector = db.getConnection();
+		tconf.useTable = true;
+		tconf.useTableT = true;
+		tconf.useTableDeg = true;
+//		tconf.deleteExistingTables = true;
+		d4mTW = new D4MTableWriter(tconf);
+		D4MTableWriter.createTableSoft("ccdSOP", db.getConnection(), overwrite);
+		
+		log.debug("<==setup" + "zoo=" + zookeeperURI);
 	}
 
 	@Override
@@ -54,13 +68,17 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		
 		String[] spo = s.split(" ");
 		try {
-			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", "", "");
+			d4mTW.ingestRow(new Text(spo[RDF.SUBJECT.ordinal()]), new Text(spo[RDF.OBJECT.ordinal()]), new Value(spo[RDF.PREDICATE.ordinal()]));
 		} catch (Exception e) {
 			log.error("s=" + s);
 			log.error("spo=" + spo);
 			log.error("" , e);
 		}
-		log.trace("inserted=" + spo);
+		count++;
+		if(count % 5000 == 0) {
+			d4mTW.flushBuffers();
+			log.debug("inserted=" + count);
+		}
 		log.trace("<==map");
 	}
 
