@@ -36,15 +36,15 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		String accumuloInstance = cfg.get(RDF2D4MDriver.ACCUMULO_INSTANCE);
 		String tableName = cfg.get(RDF2D4MDriver.TABLE_NAME);
 		Boolean overwrite = cfg.getBoolean(RDF2D4MDriver.OVERWRITE, false);
-		URL credsFile = new URL(cfg.get(RDF2D4MDriver.ACCUMULO_CREDS_FILE));
-		accIns = new AccumuloInsert(zookeeperURI, accumuloInstance, tableName, overwrite, credsFile);
+		URL credsFile = new URL("file:///home/haz/accumulo-creds.yml");
+		accIns = new AccumuloInsert("haz00:2181", "accumulo", "ccdSOP", overwrite, credsFile);
 		log.debug("AccumuloInsert=" + accIns);
 		log.trace("<==setup");
 	}
 
 	@Override
 	protected void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
-		// receives a RyaStatementWritable; convert to a Statement
+ 
 		log.trace("map==>0");
 		if (value.getLength() == 0) {
 			return;
@@ -54,7 +54,7 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		
 		String[] spo = s.split(" ");
 		try {
-			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", "", "");
+			accIns.doProcessing(spo[RDF.SUBJECT.ordinal()] + "\t", spo[RDF.OBJECT.ordinal()] + "\t", spo[RDF.PREDICATE.ordinal()] + "\t", "", "");
 		} catch (Exception e) {
 			log.error("s=" + s);
 			log.error("spo=" + spo);

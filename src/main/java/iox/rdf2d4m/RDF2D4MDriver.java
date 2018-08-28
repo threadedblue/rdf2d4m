@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.conf.Configuration;
@@ -29,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import iox.accumulo.AccumuloAccess;
 
 public class RDF2D4MDriver implements Runnable {
 
@@ -69,7 +73,7 @@ public class RDF2D4MDriver implements Runnable {
 	@Option(name = "-t", aliases = "--tablename", required = true, usage = "Base name of the table set for D4M.")
 	private String tableName;
 
-	private static RDFFormat rdfFormat = RDFFormat.NTRIPLES;
+	private static RDFFormat rdfFormat = RDFFormat.TURTLE;
 
 	String configFile;
 
@@ -100,17 +104,34 @@ public class RDF2D4MDriver implements Runnable {
 
 		try {
 			log.debug("accumuloInstance=" + accumuloInstance);
+			Job job = Job.getInstance(conf);
 			conf.set(ACCUMULO_INSTANCE, accumuloInstance);
 			conf.set(ACCUMULO_CREDS_FILE, getConfig().getAccumuloCreds());
 			conf.set(TABLE_NAME, tableName);
 			conf.setBoolean(OVERWRITE, overwrite);
 			conf.set(ZOOKEEPER_URI, zookeeperURI);
-			Job job = Job.getInstance(conf);
 			job.setJarByClass(RDF2D4MDriver.class);
 			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00:9000"), conf);
 			FileStatus[] ffss = fs.listStatus(new Path("/libs/rdf2d4m/lib"));
 			for (FileStatus fs1 : ffss) {
 				job.addArchiveToClassPath(fs1.getPath());
+			}
+			if(overwrite) {
+				URL credsFile = new URL(getConfig().getAccumuloCreds());
+				AccumuloAccess acc = new AccumuloAccess(zookeeperURI, accumuloInstance, credsFile);
+				Connector conn = acc.getConnection();
+				if (conn.tableOperations().exists(tableName)) {
+					conn.tableOperations().delete(tableName);
+				}
+				if (conn.tableOperations().exists(tableName + "T")) {
+					conn.tableOperations().delete(tableName + "T");
+				}
+				if (conn.tableOperations().exists(tableName + "Deg")) {
+					conn.tableOperations().delete(tableName + "Deg");
+				}
+				conn.tableOperations().create(tableName);
+				conn.tableOperations().create(tableName + "T");
+				conn.tableOperations().create(tableName + "Deg");
 			}
 			Path pathRoot = new Path(fs.getUri());
 
@@ -160,8 +181,7 @@ public class RDF2D4MDriver implements Runnable {
 					log.debug(ReflectionToStringBuilder.toString(config, ToStringStyle.MULTI_LINE_STYLE));
 				} else {
 					String eol = System.getProperty("line.separator");
-					StringReader reader = new StringReader(
-							"args:" + eol + "accumulo-creds: file:///~/accumulo-creds");
+					StringReader reader = new StringReader("args:" + eol + "accumulo-creds: file:///~/accumulo-creds.yml");
 					config = mapper.readValue(reader, RDF2D4MConfig.class);
 					log.debug(ReflectionToStringBuilder.toString(config, ToStringStyle.MULTI_LINE_STYLE));
 				}
@@ -182,7 +202,7 @@ public class RDF2D4MDriver implements Runnable {
 	public static void main(String[] args) {
 		Map<String, String> cfg = RDF2D4MDriver.getConfig().getArgs();
 		merge(args, cfg);
-		String[] args1 =  RDF2D4MDriver.getConfig().getArgsAsArray();
+		String[] args1 = RDF2D4MDriver.getConfig().getArgsAsArray();
 		RDF2D4MDriver app = new RDF2D4MDriver(args1);
 		app.run();
 	}
