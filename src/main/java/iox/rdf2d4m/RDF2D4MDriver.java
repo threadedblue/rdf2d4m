@@ -101,15 +101,15 @@ public class RDF2D4MDriver implements Runnable {
 		conf.set("xmlinput.end", "");
 		conf.set("io.serializations",
 				"org.apache.hadoop.io.serializer.JavaSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
+		conf.set(ACCUMULO_INSTANCE, accumuloInstance);
+		conf.set(ACCUMULO_CREDS_FILE, getConfig().getAccumuloCreds());
+		conf.set(TABLE_NAME, tableName);
+		conf.setBoolean(OVERWRITE, overwrite);
+		conf.set(ZOOKEEPER_URI, zookeeperURI);
 
 		try {
 			log.debug("accumuloInstance=" + accumuloInstance);
 			Job job = Job.getInstance(conf);
-			conf.set(ACCUMULO_INSTANCE, accumuloInstance);
-			conf.set(ACCUMULO_CREDS_FILE, getConfig().getAccumuloCreds());
-			conf.set(TABLE_NAME, tableName);
-			conf.setBoolean(OVERWRITE, overwrite);
-			conf.set(ZOOKEEPER_URI, zookeeperURI);
 			job.setJarByClass(RDF2D4MDriver.class);
 			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00:9000"), conf);
 			FileStatus[] ffss = fs.listStatus(new Path("/libs/rdf2d4m/lib"));

@@ -3,7 +3,6 @@ package iox.rdf2d4m;
 import java.io.IOException;
 import java.net.URL;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
@@ -41,19 +40,19 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		String accumuloInstance = cfg.get(RDF2D4MDriver.ACCUMULO_INSTANCE);
 		String tableName = cfg.get(RDF2D4MDriver.TABLE_NAME);
 		Boolean overwrite = cfg.getBoolean(RDF2D4MDriver.OVERWRITE, false);
-		URL credsFile = new URL("file:///home/haz/accumulo-creds.yml");
-		AccumuloAccess db = new AccumuloAccess("haz00:2181", "accumulo", credsFile);
+		URL credsFile = new URL(cfg.get(RDF2D4MDriver.ACCUMULO_CREDS_FILE));
+		AccumuloAccess db = new AccumuloAccess(zookeeperURI, accumuloInstance, credsFile);
 		D4MTableConfig tconf = new D4MTableConfig();
-		tconf.baseName = "ccdSOP";
+		tconf.baseName = tableName;
 		tconf.connector = db.getConnection();
 		tconf.useTable = true;
 		tconf.useTableT = true;
-		tconf.useTableDeg = true;
-//		tconf.deleteExistingTables = true;
+		tconf.useTableDeg = overwrite;
+		tconf.deleteExistingTables = true;
 		d4mTW = new D4MTableWriter(tconf);
 		D4MTableWriter.createTableSoft("ccdSOP", db.getConnection(), overwrite);
 		
-		log.debug("<==setup" + "zoo=" + zookeeperURI);
+		log.debug("<==setup" + " zoo=" + zookeeperURI);
 	}
 
 	@Override
@@ -63,7 +62,7 @@ public class RDF2D4MMapper extends Mapper<LongWritable, Text, NullWritable, Text
 		if (value.getLength() == 0) {
 			return;
 		}
-		String s = value.toString().replaceAll("[<>]", "");
+		String s = value.toString().replaceAll("[<>\"]", "");
 		log.trace("map==>1");
 		
 		String[] spo = s.split(" ");

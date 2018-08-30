@@ -1,10 +1,10 @@
 # RDF2D4M configuration file
 ---
 args:
-  i: "/ccd/ccd1/ccd-0000/rdf"
+  i: "/ccd/cypress/rdf"
   l: "accumulo"
   zk: "haz00:2181"
   fs: "hdfs://haz00:9000"
-  t: "ccdSOP"
+  t: "ccdcyp"
   ow: "true"
 accumuloCreds: "file:///home/haz/accumulo-creds.yml"
