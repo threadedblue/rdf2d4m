@@ -26,6 +26,10 @@ clean {
     delete "${applicationName}" 
 }
 
+configurations.all {
+    exclude module: 'slf4j-log4j12'
+}
+
 repositories {
     jcenter()
     maven {url 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath;}

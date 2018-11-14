@@ -13,16 +13,19 @@
 	<Loggers>
         <Logger name="edu.mit.ll.d4m.db.cloud.accumulo" level="OFF">
             <AppenderRef ref="Console" />
+            <AppenderRef ref="File"/>
         </Logger>
         <Logger name="iox.rdf2d4m" level="DEBUG">
             <AppenderRef ref="Console" />
+            <AppenderRef ref="File"/>
         </Logger>
-        <Logger name="iox.accumulo" level="DEBUG">
+        <Logger name="iox.accumulo" level="INFO">
             <AppenderRef ref="Console" />
+            <AppenderRef ref="File"/>
         </Logger>
 		<Root level="INFO">
 			<AppenderRef ref="Console" />
- <!--			<AppenderRef ref="File"/> -->
+ 			<AppenderRef ref="File"/>
 		</Root>
 	</Loggers>
 </Configuration>

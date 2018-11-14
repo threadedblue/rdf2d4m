@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 DIR=`pwd`
-cd rdf2d4m
-java -jar rdf2d4m-0.0.1.jar
+NAME="rdf2d4m"
+cd ${NAME}
+java -jar ${NAME}-0.0.1.jar -i /rdf -t 500rdfSPO -fs hdfs://haz00:9000 -l accumulo -zk haz00:2181 -ow -r -c file:///home/haz/accumulo-creds.yml
 cd $DIR
